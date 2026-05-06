@@ -21,8 +21,18 @@ const scriptFont = Great_Vibes({
 });
 
 export const metadata: Metadata = {
-  title: "Um Mais Um Fotos | Fotografia Premium em Ourinhos-SP",
+  title: "UmMaisUm Fotos de Família",
   description: "Estúdio fotográfico especializado em eternizar momentos com um olhar artístico e editorial. Casamentos, Gestantes, Newborn e ensaios temáticos.",
+  openGraph: {
+    title: "UmMaisUm Fotos de Família",
+    description: "Estúdio fotográfico especializado em eternizar momentos com um olhar artístico e editorial.",
+    images: ["/images/logotipo.png"],
+    type: "website",
+  },
+  icons: {
+    icon: "/images/logotipo.png",
+    apple: "/images/logotipo.png",
+  },
 };
 
 export const viewport: Viewport = {
