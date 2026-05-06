@@ -51,7 +51,7 @@ export default function HomePage() {
       <TaglineBanner />
 
       {/* ── HERO ── */}
-      <section className="relative h-[100dvh] flex flex-col overflow-hidden bg-cream-dark">
+      <section className="relative h-[50dvh] md:h-[65dvh] flex flex-col overflow-hidden bg-cream-dark">
         {/* Background Slider */}
         <div className="absolute inset-0 z-0">
           <AnimatePresence mode="wait">
@@ -155,7 +155,7 @@ export default function HomePage() {
               </div>
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="text-2xl font-serif text-primary mb-2">Cores da Maternidade</h4>
+                  <h4 className="text-2xl font-serif text-primary mb-2">Sessão Dia das Mães</h4>
                   <button className="text-sm text-secondary hover:text-primary transition-colors underline decoration-secondary/30">
                     Saiba Mais
                   </button>
