@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import "../styles/pixel-dither.css";
+
+:root {
+  --background: #f5f0e8;
+  --foreground: #2c2015;
+  --primary: #2c2015;
+  --secondary: #675d4d;
+  --cream-light: #faf9f7;
+  --cream-dark: #e8e1d4;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-cream-light: var(--cream-light);
+  --color-cream-dark: var(--cream-dark);
+  
+  --font-serif: var(--font-noto-serif), serif;
+  --font-sans: var(--font-manrope), sans-serif;
+  --font-script: var(--font-script), cursive;
+}
+
+.font-script {
+  font-family: var(--font-script), cursive;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-noto-serif), serif;
+}
+
+/* Garante que a navbar nunca seja escondida sob a barra do browser mobile */
+.navbar-fixed {
+  top: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+}
