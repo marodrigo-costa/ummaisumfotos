@@ -116,7 +116,7 @@ export default function PWAInstallGuide() {
                       </div>
                       <div className="flex items-center gap-3">
                         <Smartphone size={12} className="text-green-400 shrink-0" />
-                        <p className="text-[11px]">Toque em <strong>Instalar App</strong></p>
+                        <p className="text-[11px]">Toque em <strong>Adicionar à tela inicial</strong> ou <strong>Instalar aplicativo</strong></p>
                       </div>
                     </div>
                   ) : (
