@@ -13,14 +13,16 @@ import { User, Check } from "lucide-react";
 
 type LoginState = "phone" | "otp" | "onboarding" | "biometric";
 
+const supabase = createClient();
+
 export default function LoginPage() {
   const [state, setState] = useState<LoginState>("phone");
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
+  const [profile, setProfile] = useState<any>(null);
   const router = useRouter();
-  const supabase = createClient();
  
    useEffect(() => {
      if (state === "biometric") {
@@ -57,151 +59,166 @@ export default function LoginPage() {
     setPhone(submittedPhone);
     
     try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: submittedPhone }),
-      });
+       const response = await fetch('/api/auth/send-otp', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ phone: submittedPhone }),
+       });
+ 
+       const data = await response.json();
+ 
+       if (!response.ok) {
+         throw new Error(data.error || 'Erro ao enviar código');
+       }
+ 
+       setState("otp");
+     } catch (err: any) {
+       setError(err.message);
+     } finally {
+       setIsLoading(false);
+     }
+   };
+ 
+   const handleOtpSubmit = async (otp: string) => {
+     setIsLoading(true);
+     setError(null);
+ 
+     try {
+       const response = await fetch('/api/auth/verify-otp', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ phone, code: otp }),
+       });
+ 
+       const data = await response.json();
+ 
+       if (!response.ok) {
+         throw new Error(data.error || 'Código inválido');
+       }
+ 
+       // Agora fazemos o login oficial no Supabase usando a senha temporária
+       // Usaremos o e-mail técnico retornado pela API para evitar bloqueios de provider
+       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+         email: data.email,
+         password: data.tempPassword,
+       });
+ 
+       if (signInError) {
+         console.error('Erro no signInWithPassword:', signInError);
+         throw new Error('Erro ao estabelecer sessão técnica.');
+       }
 
-      const data = await response.json();
+       const user = signInData?.user;
+       if (!user) {
+         throw new Error('Usuário não retornado após autenticação.');
+       }
+ 
+       // 4. Verificar se o usuário já tem nome
+       const { data: profileData } = await supabase
+         .from('profiles')
+         .select('full_name, is_admin')
+         .eq('id', user.id)
+         .single();
+ 
+       setProfile(profileData);
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao enviar código');
-      }
+       if (!profileData?.full_name || profileData.full_name === 'Cliente') {
+         setState("onboarding");
+       } else {
+         setState("biometric");
+       }
+     } catch (err: any) {
+       setError(err.message);
+     } finally {
+       setIsLoading(false);
+     }
+   };
+ 
+   const handleOnboardingSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     if (!fullName.trim()) return;
+ 
+     setIsLoading(true);
+     try {
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) throw new Error("Sessão expirada ou não encontrada.");
 
-      setState("otp");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+       const { error: updateError } = await supabase
+         .from('profiles')
+         .update({ full_name: fullName.trim() })
+         .eq('id', user.id);
+ 
+       if (updateError) throw updateError;
+       
+       setProfile((prev: any) => ({
+         ...prev,
+         full_name: fullName.trim(),
+       }));
 
-  const handleOtpSubmit = async (otp: string) => {
-    setIsLoading(true);
-    setError(null);
+       setState("biometric");
+     } catch (err: any) {
+       setError("Erro ao salvar nome. Tente novamente.");
+     } finally {
+       setIsLoading(false);
+     }
+   };
+ 
+   const handleOtpResend = async () => {
+     setIsLoading(true);
+     setError(null);
+     try {
+       const response = await fetch('/api/auth/send-otp', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ phone }),
+       });
+ 
+       if (!response.ok) {
+         throw new Error('Erro ao reenviar código');
+       }
+       
+       // Opcional: mostrar um alerta de "Código reenviado"
+     } catch (err: any) {
+       setError(err.message);
+     } finally {
+       setIsLoading(false);
+     }
+   };
+ 
+   const handleBiometricAccept = async () => {
+     setIsLoading(true);
+     // Simulação de registro de passkey no futuro
+     await new Promise((resolve) => setTimeout(resolve, 1000));
+     setIsLoading(false);
+     
+     if (profile?.is_admin) {
+       router.push("/admin");
+     } else {
+       router.push("/dashboard");
+     }
+   };
+ 
+   const handleBiometricDecline = async () => {
+     let isAdmin = profile?.is_admin;
+     
+     if (isAdmin === undefined) {
+       const { data: { user } } = await supabase.auth.getUser();
+       if (user) {
+         const { data: profileData } = await supabase
+           .from('profiles')
+           .select('is_admin')
+           .eq('id', user.id)
+           .single();
+         isAdmin = profileData?.is_admin;
+       }
+     }
 
-    try {
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code: otp }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Código inválido');
-      }
-
-      // Agora fazemos o login oficial no Supabase usando a senha temporária
-      // Usaremos o e-mail técnico retornado pela API para evitar bloqueios de provider
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.tempPassword,
-      });
-
-      if (signInError) {
-        console.error('Erro no signInWithPassword:', signInError);
-        throw new Error('Erro ao estabelecer sessão técnica.');
-      }
-
-      // 4. Verificar se o usuário já tem nome
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!profile?.full_name || profile.full_name === 'Cliente') {
-        setState("onboarding");
-      } else {
-        setState("biometric");
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOnboardingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullName.trim()) return;
-
-    setIsLoading(true);
-    try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ full_name: fullName.trim() })
-        .eq('id', (await supabase.auth.getUser()).data.user?.id);
-
-      if (updateError) throw updateError;
-      
-      setState("biometric");
-    } catch (err: any) {
-      setError("Erro ao salvar nome. Tente novamente.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOtpResend = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao reenviar código');
-      }
-      
-      // Opcional: mostrar um alerta de "Código reenviado"
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleBiometricAccept = async () => {
-    setIsLoading(true);
-    // Simulação de registro de passkey no futuro
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    
-    // Buscar perfil para decidir redirecionamento
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-
-    if (profile?.is_admin) {
-      router.push("/admin");
-    } else {
-      router.push("/dashboard");
-    }
-  };
-
-  const handleBiometricDecline = async () => {
-    // Buscar perfil para decidir redirecionamento
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-
-    if (profile?.is_admin) {
-      router.push("/admin");
-    } else {
-      router.push("/dashboard");
-    }
-  };
+     if (isAdmin) {
+       router.push("/admin");
+     } else {
+       router.push("/dashboard");
+     }
+   };
 
   return (
     <div className="min-h-screen bg-[#fbf7f2] flex items-center justify-center p-6 overflow-hidden">
