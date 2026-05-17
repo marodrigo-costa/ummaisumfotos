@@ -38,7 +38,11 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api') ||
     request.nextUrl.pathname.startsWith('/ensaios') ||
     request.nextUrl.pathname.startsWith('/privacidade') ||
-    request.nextUrl.pathname.startsWith('/termos');
+    request.nextUrl.pathname.startsWith('/termos') ||
+    request.nextUrl.pathname.startsWith('/manifest') ||
+    request.nextUrl.pathname.startsWith('/icon') ||
+    request.nextUrl.pathname.startsWith('/apple-icon') ||
+    request.nextUrl.pathname.startsWith('/favicon.ico');
 
   if (isPublic) {
     return supabaseResponse;

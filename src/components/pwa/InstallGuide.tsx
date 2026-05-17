@@ -16,7 +16,18 @@ export default function PWAInstallGuide() {
       setDeferredPrompt(e);
     });
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    // Ouvir quando o app for instalado com sucesso para desativar o guia permanentemente
+    window.addEventListener('appinstalled', () => {
+      localStorage.setItem('pwa_guide_closed', 'true');
+      setShow(false);
+    });
+
+    const isStandalone = 
+      window.matchMedia('(display-mode: standalone)').matches || 
+      (navigator as any).standalone ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches;
+      
     const hasClosed = localStorage.getItem('pwa_guide_closed');
 
     if (!isStandalone && !hasClosed) {
@@ -44,6 +55,7 @@ export default function PWAInstallGuide() {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
+        localStorage.setItem('pwa_guide_closed', 'true');
         setDeferredPrompt(null);
         setShow(false);
       }
