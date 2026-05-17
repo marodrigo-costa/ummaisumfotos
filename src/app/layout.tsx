@@ -56,7 +56,7 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${notoSerif.variable} ${manrope.variable} ${scriptFont.variable} antialiased`}
     >
-      <body className="min-h-screen bg-background font-sans">
+      <body className="min-h-screen bg-background font-sans overflow-x-hidden">
         <NavBar />
         {children}
         <PWAInstallGuide />

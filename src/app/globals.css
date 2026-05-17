@@ -27,7 +27,10 @@
   font-family: var(--font-script), cursive;
 }
 
+html,
 body {
+  max-width: 100vw;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-manrope), sans-serif;
