@@ -10,6 +10,7 @@ import { BiometricPrompt } from "@/components/auth/BiometricPrompt";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { User, Check } from "lucide-react";
+import { startRegistration, startAuthentication } from "@simplewebauthn/browser";
 
 type LoginState = "phone" | "otp" | "onboarding" | "biometric";
 
@@ -187,14 +188,47 @@ export default function LoginPage() {
  
    const handleBiometricAccept = async () => {
      setIsLoading(true);
-     // Simulação de registro de passkey no futuro
-     await new Promise((resolve) => setTimeout(resolve, 1000));
-     setIsLoading(false);
-     
-     if (profile?.is_admin) {
-       router.push("/admin");
-     } else {
-       router.push("/dashboard");
+     try {
+       // 1. Obter opções de registro do backend
+       const optionsResp = await fetch('/api/auth/webauthn/generate-registration-options');
+       const optionsData = await optionsResp.json();
+
+       if (!optionsResp.ok) throw new Error(optionsData.error || 'Erro ao gerar opções biométricas');
+
+       // 2. Chamar o prompt nativo (Face ID / Touch ID)
+       const attResp = await startRegistration(optionsData);
+
+       // 3. Enviar a resposta para o backend validar e salvar
+       const verificationResp = await fetch('/api/auth/webauthn/verify-registration', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(attResp),
+       });
+
+       const verificationData = await verificationResp.json();
+       
+       if (!verificationData.verified) {
+         throw new Error('Falha na validação biométrica');
+       }
+
+       // Redirecionamento em caso de sucesso
+       if (profile?.is_admin) {
+         router.push("/admin");
+       } else {
+         router.push("/dashboard");
+       }
+
+     } catch (err: any) {
+       console.error('Erro na biometria:', err);
+       // Se o usuário cancelar a biometria, não bloqueamos o acesso,
+       // apenas redirecionamos normalmente (ele usará o login OTP na próxima)
+       if (profile?.is_admin) {
+         router.push("/admin");
+       } else {
+         router.push("/dashboard");
+       }
+     } finally {
+       setIsLoading(false);
      }
    };
  
@@ -217,6 +251,64 @@ export default function LoginPage() {
        router.push("/admin");
      } else {
        router.push("/dashboard");
+     }
+   };
+
+   const handleBiometricLogin = async () => {
+     setIsLoading(true);
+     setError(null);
+     
+     try {
+       // 1. Pede o desafio de autenticação pro backend
+       const optionsResp = await fetch('/api/auth/webauthn/generate-authentication-options');
+       const optionsData = await optionsResp.json();
+
+       if (!optionsResp.ok) throw new Error(optionsData.error || 'Erro ao preparar login biométrico');
+
+       // 2. Aciona o prompt biométrico do sistema operacional
+       const asseResp = await startAuthentication(optionsData);
+
+       // 3. Valida a resposta no backend
+       const verificationResp = await fetch('/api/auth/webauthn/verify-authentication', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(asseResp),
+       });
+
+       const verificationData = await verificationResp.json();
+
+       if (!verificationResp.ok || !verificationData.verified) {
+         throw new Error(verificationData.error || 'Autenticação biométrica falhou');
+       }
+
+       // 4. Efetuar o login silencioso no Supabase usando a senha técnica retornada
+       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+         email: verificationData.email,
+         password: verificationData.tempPassword,
+       });
+
+       if (signInError) throw new Error('Erro ao estabelecer sessão após biometria');
+
+       const user = signInData.user;
+       
+       // Checar admin
+       const { data: profileData } = await supabase
+         .from('profiles')
+         .select('is_admin')
+         .eq('id', user.id)
+         .single();
+         
+       if (profileData?.is_admin) {
+         router.push("/admin");
+       } else {
+         router.push("/dashboard");
+       }
+
+     } catch (err: any) {
+       console.error('Login biométrico:', err);
+       setError('A biometria falhou ou foi cancelada. Tente com seu número de WhatsApp.');
+     } finally {
+       setIsLoading(false);
      }
    };
 
@@ -278,6 +370,7 @@ export default function LoginPage() {
                   onSubmit={handlePhoneSubmit}
                   isLoading={isLoading}
                   error={error}
+                  onBiometricLogin={handleBiometricLogin}
                 />
               </motion.div>
             )}

@@ -2,7 +2,7 @@
 
 import { IMaskInput } from "react-imask";
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Ícone Oficial do WhatsApp em SVG
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -15,10 +15,20 @@ interface PhoneInputFormProps {
   onSubmit: (phone: string) => void;
   isLoading: boolean;
   error?: string | null;
+  onBiometricLogin?: () => void;
 }
 
-export function PhoneInputForm({ onSubmit, isLoading, error }: PhoneInputFormProps) {
+export function PhoneInputForm({ onSubmit, isLoading, error, onBiometricLogin }: PhoneInputFormProps) {
   const [phone, setPhone] = useState("");
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.PublicKeyCredential) {
+      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then((available) => setIsBiometricSupported(available))
+        .catch(() => setIsBiometricSupported(false));
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +67,25 @@ export function PhoneInputForm({ onSubmit, isLoading, error }: PhoneInputFormPro
         <div className="p-4 rounded-2xl text-center text-sm bg-red-50 text-red-700">
           {error}
         </div>
+      )}
+
+      {isBiometricSupported && (
+        <>
+          <div className="flex items-center gap-4 my-6">
+            <div className="h-[1px] bg-[#e5dfd5] flex-1"></div>
+            <span className="text-[#a1a1a1] text-xs font-medium uppercase tracking-widest">ou</span>
+            <div className="h-[1px] bg-[#e5dfd5] flex-1"></div>
+          </div>
+          
+          <button
+            type="button"
+            onClick={onBiometricLogin}
+            disabled={isLoading}
+            className="w-full bg-transparent border-2 border-[#97816a] text-[#97816a] py-4 rounded-2xl font-medium hover:bg-[#f3ede4] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group disabled:opacity-40"
+          >
+            Entrar com Face ID / Touch ID
+          </button>
+        </>
       )}
     </div>
   );
