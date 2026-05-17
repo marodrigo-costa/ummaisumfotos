@@ -43,6 +43,8 @@ export const viewport: Viewport = {
 };
 
 import { NavBar } from "@/components/layout/NavBar";
+import { Toaster } from "sonner";
+import PWAInstallGuide from "@/components/pwa/InstallGuide";
 
 export default function RootLayout({
   children,
@@ -57,6 +59,8 @@ export default function RootLayout({
       <body className="min-h-screen bg-background font-sans">
         <NavBar />
         {children}
+        <PWAInstallGuide />
+        <Toaster position="bottom-center" toastOptions={{ style: { background: '#2a2a2a', color: '#fff', border: 'none', borderRadius: '100px' } }} />
       </body>
     </html>
   );

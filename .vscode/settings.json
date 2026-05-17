@@ -1,5 +1,6 @@
 {
     "antigravityLink.autoStart": true,
-    "antigravityLink.port": 4000,
-    "antigravityLink.preferredHost": "192.168.1.100"
+    "antigravityLink.port": 5000,
+    "antigravityLink.preferredHost": "192.168.1.100",
+    "antigravityLink.includeFallbackTargets": true
 }

@@ -1,0 +1,37 @@
+version: "3.3"
+
+services:
+  evolution-api:
+    container_name: evolution_api
+    image: atendai/evolution-api:latest
+    restart: always
+    ports:
+      - "8085:8080"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    volumes:
+      - evolution_store:/evolution/store
+      - evolution_instances:/evolution/instances
+
+  postgres:
+    container_name: evolution_postgres
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: evolution
+      POSTGRES_USER: evolution_user
+      POSTGRES_PASSWORD: evolution_pass
+    volumes:
+      - evolution_db:/var/lib/postgresql/data
+
+volumes:
+  evolution_store:
+  evolution_instances:
+  evolution_db:

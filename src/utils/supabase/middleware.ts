@@ -31,15 +31,25 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake can make it very hard to debug
   // issues with users being randomly logged out.
 
+  const isPublic = 
+    request.nextUrl.pathname === '/' ||
+    request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/api') ||
+    request.nextUrl.pathname.startsWith('/ensaios') ||
+    request.nextUrl.pathname.startsWith('/privacidade') ||
+    request.nextUrl.pathname.startsWith('/termos');
+
+  if (isPublic) {
+    return supabaseResponse;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
+    !user
   ) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
@@ -51,6 +61,33 @@ export async function updateSession(request: NextRequest) {
       redirectResponse.cookies.set(cookie.name, cookie.value)
     })
     return redirectResponse
+  }
+
+  // Se o usuário existir e tentar acessar áreas restritas, verifica se a conta está inativa e redireciona conforme papel
+  if (user && (request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/admin'))) {
+    const { data: profile } = await supabase.from('profiles').select('is_active, is_admin').eq('id', user.id).single()
+    
+    if (profile && profile.is_active === false && request.nextUrl.pathname !== '/inativo') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/inativo'
+      
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
+
+    // Redireciona admins que caírem no dashboard para o admin
+    if (profile?.is_admin && request.nextUrl.pathname.startsWith('/dashboard')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin'
+      const redirectResponse = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value)
+      })
+      return redirectResponse
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as is. If you're creating a

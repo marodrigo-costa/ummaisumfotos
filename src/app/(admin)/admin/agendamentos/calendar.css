@@ -1,0 +1,88 @@
+/* Custom FullCalendar Styles for Um Mais Um */
+
+.fc {
+  --fc-button-bg-color: #2a2a2a;
+  --fc-button-border-color: #2a2a2a;
+  --fc-button-hover-bg-color: #97816a;
+  --fc-button-hover-border-color: #97816a;
+  --fc-button-active-bg-color: #97816a;
+  --fc-button-active-border-color: #97816a;
+  
+  --fc-event-bg-color: #97816a;
+  --fc-event-border-color: #97816a;
+  
+  --fc-today-bg-color: #f3ede4;
+  
+  font-family: inherit;
+}
+
+.fc .fc-toolbar-title {
+  font-family: 'serif';
+  font-size: 1.5rem;
+  color: #2a2a2a;
+}
+
+.fc .fc-button {
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active, 
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: #97816a;
+  border-color: #97816a;
+  box-shadow: none;
+}
+
+.fc-theme-standard td, .fc-theme-standard th {
+  border: 1px solid #f3eee7;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+  border: 1px solid #f3eee7;
+  border-radius: 1.5rem;
+  overflow: hidden;
+}
+
+.fc .fc-col-header-cell-cushion {
+  padding: 12px 4px;
+  color: #a1a1a1;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #7a7a7a;
+  font-size: 0.8rem;
+  padding: 8px;
+}
+
+.fc-event {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: none !important;
+}
+
+.fc-v-event {
+  background-color: #97816a;
+}
+
+.fc-h-event {
+  background-color: #97816a;
+}
+
+/* Cores por Status */
+.status-confirmado { background-color: #97816a !important; }
+.status-pendente { background-color: #d1ba8e !important; }
+.status-fotografado { background-color: #2a2a2a !important; }
+.status-disponibilizado { background-color: #4a5d4a !important; }

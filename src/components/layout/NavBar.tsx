@@ -6,11 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { User, Menu, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 const NavLinks = [
-  { name: "Estúdio", href: "#estudio" },
+  { name: "História", href: "#historia" },
   { name: "Serviços", href: "#servicos" },
   { name: "Temáticos", href: "#tematicos" },
   { name: "Contato", href: "#contato" },
@@ -22,12 +22,17 @@ export function NavBar() {
   const [scrolled, setScrolled] = useState(false);
   const [isMobile, setIsMobile] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const pathname = usePathname();
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
+  const supabaseRef = useRef(supabase);
 
   useEffect(() => {
+    const sb = supabaseRef.current;
+
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -40,34 +45,48 @@ export function NavBar() {
     window.addEventListener("scroll", updateScrolled);
     
     const fetchProfile = async (userId: string) => {
-      const { data } = await supabase
+      const { data } = await sb
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .maybeSingle();
       setProfile(data);
+      
+      const { data: adminData } = await sb
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", userId)
+        .single();
+      
+      setIsAdmin(!!adminData?.is_admin);
+      setLoading(false);
     };
 
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await sb.auth.getUser();
       setUser(user);
       if (user) fetchProfile(user.id);
+      else setLoading(false);
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       if (currentUser) fetchProfile(currentUser.id);
-      else setProfile(null);
+      else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
     // Listen for profile changes (realtime)
-    const profileChannel = supabase
+    const profileChannel = sb
       .channel('public:profiles')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, payload => {
         if (payload.new.id === user?.id) {
           setProfile(payload.new);
+          setIsAdmin(!!payload.new.is_admin);
         }
       })
       .subscribe();
@@ -76,24 +95,33 @@ export function NavBar() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", updateScrolled);
       subscription.unsubscribe();
-      supabase.removeChannel(profileChannel);
+      sb.removeChannel(profileChannel);
     };
-  }, [supabase, user?.id]);
+  }, [user?.id]);
 
   const navHeight = isMobile 
     ? (scrolled ? 64 : 110) 
     : 140;
+  
+  const handleLogout = async () => {
+    setIsUserMenuOpen(false);
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
 
   const getInitials = (u: any, p: any) => {
     const name = p?.full_name || u?.user_metadata?.full_name;
-    if (name) {
+    const isValidName = name && !name.includes('@') && isNaN(Number(name[0]));
+
+    if (isValidName && name !== 'Cliente') {
       const names = name.split(' ');
       if (names.length >= 2) {
         return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
       }
       return names[0][0].toUpperCase();
     }
-    return u?.email?.[0]?.toUpperCase() || '?';
+    
+    return <User size={16} className="text-white" />;
   };
 
   const UserMenu = ({ align = "right" }: { align?: "left" | "right" }) => (
@@ -162,22 +190,23 @@ export function NavBar() {
                     <p className="text-sm font-serif text-[#2a2a2a] truncate leading-tight">
                       {profile?.full_name || user?.user_metadata?.full_name || 'Cliente'}
                     </p>
+                    {profile?.phone && (
+                      <p className="text-[10px] text-secondary/60 italic mt-0.5">
+                        {profile.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <p className="text-[10px] text-[#7a7a7a] truncate italic">({user?.email})</p>
               </div>
               <Link 
-                href="/dashboard" 
+                href={isAdmin ? "/admin" : "/dashboard"}
                 onClick={() => setIsUserMenuOpen(false)}
                 className="flex items-center px-4 py-3 text-[10px] font-sans tracking-[0.2em] uppercase text-secondary hover:bg-[#fbf7f2] hover:text-primary transition-colors"
               >
                 Minha Área
               </Link>
               <button 
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  setIsUserMenuOpen(false);
-                }}
+                onClick={handleLogout}
                 className="w-full text-left px-4 py-3 text-[10px] font-sans tracking-[0.2em] uppercase text-red-500 hover:bg-red-50 transition-colors border-t border-cream-dark/30"
               >
                 Sair
@@ -253,9 +282,12 @@ export function NavBar() {
 
               {isMobile && scrolled && (
                 <motion.div
-                  layoutId="user-profile"
+                  layoutId="user-nav-item"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
+                  transition={{
+                    layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+                  }}
                 >
                   {user ? <UserMenu align="left" /> : (
                     <Link href="/login" className="p-2 text-secondary bg-cream-dark/20 rounded-full">
@@ -284,11 +316,14 @@ export function NavBar() {
 
               {(!isMobile || !scrolled) && (
                 <motion.div
-                  layoutId="user-profile"
+                  layoutId="user-nav-item"
                   className={cn(
                     "flex items-center",
                     !isMobile ? "border-l border-cream-dark pl-6" : ""
                   )}
+                  transition={{
+                    layout: { duration: 0.5, ease: [0.22, 1, 0.36, 1] }
+                  }}
                 >
                   {user ? <UserMenu align="right" /> : (
                     <Link 

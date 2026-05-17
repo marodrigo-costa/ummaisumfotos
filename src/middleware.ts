@@ -2,6 +2,8 @@ import { type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  // Chamamos o updateSession para todas as rotas para garantir que cookies e headers sejam propagados.
+  // A otimização de performance agora deve ser feita dentro do updateSession ou através do matcher.
   return await updateSession(request)
 }
 
