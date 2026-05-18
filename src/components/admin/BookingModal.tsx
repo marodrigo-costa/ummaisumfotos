@@ -239,10 +239,10 @@ export function BookingModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
+            className="relative bg-white w-full max-w-lg rounded-[1.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col"
           >
             {/* Modal Header */}
-            <div className="bg-[#fbf7f2] px-8 py-6 border-b border-[#f3eee7] flex items-center justify-between">
+            <div className="bg-[#fbf7f2] px-5 sm:px-8 py-4 sm:py-6 border-b border-[#f3eee7] flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-[#2a2a2a] rounded-xl flex items-center justify-center text-[#d1ba8e]">
                   <CalendarIcon size={20} />
@@ -257,7 +257,7 @@ export function BookingModal({
             </div>
 
             {/* Modal Body */}
-            <div className="px-8 py-8 space-y-6 overflow-y-auto max-h-[70vh]">
+            <div className="px-5 sm:px-8 py-6 sm:py-8 space-y-4 sm:space-y-6 overflow-y-auto max-h-[70vh]">
               
               {/* Cliente */}
               <div className="space-y-2">
@@ -336,7 +336,7 @@ export function BookingModal({
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 10 }}
-                    className="grid grid-cols-2 gap-4"
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                   >
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-[#97816a] uppercase tracking-widest flex items-center gap-2">
@@ -374,7 +374,7 @@ export function BookingModal({
               </AnimatePresence>
 
               {/* Data e Hora */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-[#97816a] uppercase tracking-widest flex items-center gap-2">
                     <CalendarIcon size={12} /> Data
@@ -438,7 +438,7 @@ export function BookingModal({
               </div>
 
               {/* Valores Financeiros */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-[#97816a] uppercase tracking-widest flex items-center gap-2">
                     <DollarSign size={12} /> Valor Programado
@@ -505,7 +505,7 @@ export function BookingModal({
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-[#fbf7f2] px-8 py-6 border-t border-[#f3eee7] flex items-center justify-between">
+            <div className="bg-[#fbf7f2] px-5 sm:px-8 py-4 sm:py-6 border-t border-[#f3eee7] flex items-center justify-between">
               {selectedBooking ? (
                 <button 
                   onClick={deleteBooking}

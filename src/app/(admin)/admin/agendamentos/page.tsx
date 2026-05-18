@@ -77,6 +77,9 @@ export default function AgendamentosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
+  // Responsive view state
+  const [initialView, setInitialView] = useState<string | null>(null);
+
   // Financial filter state — independent from the calendar
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toLocaleDateString('en-CA');
@@ -119,6 +122,8 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     fetchInitialData();
+    // Definimos a view inicial baseada na largura da tela (Dia para mobile, Semana para desktop)
+    setInitialView(window.innerWidth < 768 ? "timeGridDay" : "timeGridWeek");
   }, []);
 
   async function fetchInitialData() {
@@ -259,76 +264,83 @@ export default function AgendamentosPage() {
       </div>
 
       {/* Calendar Card */}
-      <div className="bg-white rounded-[2.5rem] p-6 md:p-10 border border-[#f3eee7] shadow-sm overflow-hidden">
-        <FullCalendar
-          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-          initialView="timeGridWeek"
-          headerToolbar={{
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-          }}
-          locale="pt-br"
-          buttonText={{
-            today: 'Hoje',
-            month: 'Mês',
-            week: 'Semana',
-            day: 'Dia'
-          }}
-          allDaySlot={false}
-          slotMinTime="08:00:00"
-          slotMaxTime="20:00:00"
-          height="auto"
-          events={calendarEvents}
-          eventClick={handleEventClick}
-          dateClick={handleDateClick}
-          editable={true}
-          eventDrop={async (info) => {
-            const id = info.event.id;
-            const newStart = info.event.startStr;
-            const newEnd = info.event.endStr || new Date(info.event.start!.getTime() + 30 * 60 * 1000).toISOString();
+      <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] p-3 sm:p-6 md:p-10 border border-[#f3eee7] shadow-sm overflow-hidden">
+        {initialView ? (
+          <FullCalendar
+            key={initialView}
+            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+            initialView={initialView}
+            headerToolbar={{
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            }}
+            locale="pt-br"
+            buttonText={{
+              today: 'Hoje',
+              month: 'Mês',
+              week: 'Semana',
+              day: 'Dia'
+            }}
+            allDaySlot={false}
+            slotMinTime="08:00:00"
+            slotMaxTime="20:00:00"
+            height="auto"
+            events={calendarEvents}
+            eventClick={handleEventClick}
+            dateClick={handleDateClick}
+            editable={true}
+            eventDrop={async (info) => {
+              const id = info.event.id;
+              const newStart = info.event.startStr;
+              const newEnd = info.event.endStr || new Date(info.event.start!.getTime() + 30 * 60 * 1000).toISOString();
 
-            // Verifica sobreposição antes de salvar
-            const { data: conflicts } = await supabase
-              .from("bookings")
-              .select("id, booking_date, client:profiles(full_name)")
-              .lt("booking_date", newEnd)
-              .gt("end_date", newStart)
-              .neq("id", id);
+              // Verifica sobreposição antes de salvar
+              const { data: conflicts } = await supabase
+                .from("bookings")
+                .select("id, booking_date, client:profiles(full_name)")
+                .lt("booking_date", newEnd)
+                .gt("end_date", newStart)
+                .neq("id", id);
 
-            if (conflicts && conflicts.length > 0) {
-              const conflicting = conflicts[0] as any;
-              const name = conflicting.client?.full_name || "outro cliente";
-              const time = new Date(conflicting.booking_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-              toast.error(`⚠️ Conflito! Já existe um ensaio de ${name} nesse horário (${time}). Mova para outro horário.`, { duration: 6000 });
-              info.revert();
-              return;
-            }
-            
-            const { error } = await supabase.from("bookings").update({
-              booking_date: newStart,
-              end_date: newEnd
-            }).eq("id", id);
+              if (conflicts && conflicts.length > 0) {
+                const conflicting = conflicts[0] as any;
+                const name = conflicting.client?.full_name || "outro cliente";
+                const time = new Date(conflicting.booking_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                toast.error(`⚠️ Conflito! Já existe um ensaio de ${name} nesse horário (${time}). Mova para outro horário.`, { duration: 6000 });
+                info.revert();
+                return;
+              }
+              
+              const { error } = await supabase.from("bookings").update({
+                booking_date: newStart,
+                end_date: newEnd
+              }).eq("id", id);
 
-            if (error) {
-              toast.error("Erro ao mover agendamento");
-              info.revert();
-            } else {
-              setBookings(prev => prev.map(b => 
-                b.id === id 
-                  ? { ...b, booking_date: newStart, end_date: newEnd }
-                  : b
-              ));
-              toast.success("Horário atualizado");
-            }
-          }}
-        />
+              if (error) {
+                toast.error("Erro ao mover agendamento");
+                info.revert();
+              } else {
+                setBookings(prev => prev.map(b => 
+                  b.id === id 
+                    ? { ...b, booking_date: newStart, end_date: newEnd }
+                    : b
+                ));
+                toast.success("Horário atualizado");
+              }
+            }}
+          />
+        ) : (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <Loader2 className="animate-spin text-[#97816a]" size={32} />
+          </div>
+        )}
       </div>
 
       {/* Resumo Financeiro — com filtro de período próprio */}
-      <div className="bg-white rounded-[2.5rem] border border-[#f3eee7] shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-[#f3eee7] shadow-sm overflow-hidden">
         {/* Header do card */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 pt-8 pb-6 border-b border-[#f3eee7]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 px-4 sm:px-8 pt-6 sm:pt-8 pb-4 sm:pb-6 border-b border-[#f3eee7]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#fbf7f2] rounded-xl flex items-center justify-center text-[#97816a]">
               <DollarSign size={20} />
@@ -342,38 +354,38 @@ export default function AgendamentosPage() {
           </div>
 
           {/* Filtro de intervalo */}
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full sm:w-auto">
             {/* Atalhos de período */}
-            <div className="flex gap-1.5">
+            <div className="grid grid-cols-3 sm:flex gap-1.5 w-full sm:w-auto">
               {[['month', 'Este mês'], ['last_month', 'Mês anterior'], ['year', 'Este ano']].map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setPreset(key as any)}
-                  className="text-[10px] px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest border border-[#f3eee7] text-[#97816a] hover:bg-[#97816a] hover:text-white hover:border-[#97816a] transition-all"
+                  className="text-[9px] sm:text-[10px] px-2 sm:px-3 py-1.5 rounded-lg font-bold uppercase tracking-widest border border-[#f3eee7] text-[#97816a] hover:bg-[#97816a] hover:text-white hover:border-[#97816a] transition-all text-center"
                 >
                   {label}
                 </button>
               ))}
             </div>
             {/* Inputs de data */}
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-[1fr_auto_1fr] sm:flex sm:items-center gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-1.5 bg-[#fbf7f2] border border-[#f3eee7] rounded-xl px-3 py-2">
                 <span className="text-[10px] font-bold text-[#a1a1a1] uppercase">De</span>
                 <input
                   type="date"
                   value={finFrom}
                   onChange={e => setFinFrom(e.target.value)}
-                  className="bg-transparent text-xs text-[#2a2a2a] outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-[#2a2a2a] outline-none cursor-pointer w-full"
                 />
               </div>
-              <span className="text-[#c9b9a8]">/</span>
+              <span className="text-[#c9b9a8] self-center">/</span>
               <div className="flex items-center gap-1.5 bg-[#fbf7f2] border border-[#f3eee7] rounded-xl px-3 py-2">
                 <span className="text-[10px] font-bold text-[#a1a1a1] uppercase">Até</span>
                 <input
                   type="date"
                   value={finTo}
                   onChange={e => setFinTo(e.target.value)}
-                  className="bg-transparent text-xs text-[#2a2a2a] outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-[#2a2a2a] outline-none cursor-pointer w-full"
                 />
               </div>
             </div>
@@ -382,25 +394,25 @@ export default function AgendamentosPage() {
 
         {/* Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#f3eee7]">
-          <div className="px-8 py-6 space-y-1">
+          <div className="px-4 py-4 sm:px-8 sm:py-6 space-y-1">
             <p className="text-[10px] text-[#a1a1a1] uppercase font-bold tracking-widest">Receita Programada</p>
-            <p className="text-3xl font-serif text-[#2a2a2a]">
+            <p className="text-2xl sm:text-3xl font-serif text-[#2a2a2a]">
               R$ {totalScheduled.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-[#a1a1a1]">Valor previsto nos agendamentos</p>
           </div>
 
-          <div className="px-8 py-6 space-y-1">
+          <div className="px-4 py-4 sm:px-8 sm:py-6 space-y-1">
             <p className="text-[10px] text-[#a1a1a1] uppercase font-bold tracking-widest">Receita Realizada</p>
-            <p className="text-3xl font-serif text-emerald-600">
+            <p className="text-2xl sm:text-3xl font-serif text-emerald-600">
               R$ {totalRealized.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-[#a1a1a1]">Valor efetivamente recebido</p>
           </div>
 
-          <div className="px-8 py-6 space-y-1">
+          <div className="px-4 py-4 sm:px-8 sm:py-6 space-y-1">
             <p className="text-[10px] text-[#a1a1a1] uppercase font-bold tracking-widest">A Receber</p>
-            <p className={cn("text-3xl font-serif", totalPending > 0 ? "text-amber-600" : "text-emerald-600")}>
+            <p className={cn("text-2xl sm:text-3xl font-serif", totalPending > 0 ? "text-amber-600" : "text-emerald-600")}>
               R$ {Math.max(totalPending, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-[#a1a1a1]">Diferença programado vs. realizado</p>

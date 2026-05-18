@@ -86,3 +86,63 @@
 .status-pendente { background-color: #d1ba8e !important; }
 .status-fotografado { background-color: #2a2a2a !important; }
 .status-disponibilizado { background-color: #4a5d4a !important; }
+
+/* Responsividade Mobile para FullCalendar */
+@media (max-width: 768px) {
+  /* Empilha as seções da barra de ferramentas verticalmente e centraliza */
+  .fc .fc-header-toolbar {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: center !important;
+    margin-bottom: 1.25rem !important;
+  }
+  
+  .fc .fc-toolbar-title {
+    font-size: 1.15rem !important;
+    text-align: center !important;
+  }
+  
+  /* Permite que os chunks da toolbar usem flex-wrap no mobile se necessário */
+  .fc .fc-toolbar-chunk {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  /* Botões menores no mobile para economizar espaço horizontal */
+  .fc .fc-button {
+    padding: 0.4rem 0.75rem !important;
+    font-size: 0.72rem !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  /* Células e cabeçalhos compactos no mobile */
+  .fc .fc-col-header-cell-cushion {
+    padding: 8px 2px !important;
+    font-size: 0.65rem !important;
+    letter-spacing: 0.02em !important;
+  }
+  
+  .fc .fc-daygrid-day-number {
+    font-size: 0.7rem !important;
+    padding: 4px !important;
+  }
+
+  .fc-theme-standard .fc-scrollgrid {
+    border-radius: 1rem !important;
+  }
+  
+  /* Eventos mais limpos e com fontes legíveis no mobile */
+  .fc-event {
+    padding: 1px 3px !important;
+    font-size: 0.68rem !important;
+  }
+
+  /* Ajusta o tamanho da área de horas no grid diário/semanal para dar mais espaço */
+  .fc .fc-timegrid-slot-label-cushion,
+  .fc .fc-timegrid-axis-cushion {
+    font-size: 0.68rem !important;
+    padding: 4px !important;
+  }
+}
+

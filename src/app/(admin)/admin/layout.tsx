@@ -172,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Content Area - Padding adjust for Bottom Nav */}
         <div className={cn(
-          "flex-1 overflow-y-auto bg-[#fbf7f2]",
+          "flex-1 overflow-y-auto overflow-x-hidden bg-[#fbf7f2]",
           isMobile ? "p-6 pb-24" : "p-8"
         )}>
           <motion.div
